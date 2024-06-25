@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "Nova",
+			"Path": "E:\\UE_files\\SKYWORLD\\Source\\Nova.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "NovaEditor",
+			"Path": "E:\\UE_files\\SKYWORLD\\Source\\NovaEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}

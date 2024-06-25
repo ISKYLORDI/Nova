@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"E:\\UE_files\\SKYWORLD\\Source\\Nova\\Nova.Build.cs",
+		"E:\\UE_files\\SKYWORLD\\Source\\Nova.Target.cs",
+		"E:\\UE_files\\SKYWORLD\\Source\\NovaEditor.Target.cs"
+	],
+	"EngineVersion": "5.2.1"
+}
