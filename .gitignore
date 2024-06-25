@@ -311,3 +311,17 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+
+
+# Cris edits:
+
+Debug/*
+
+Intermediate/*
+
+Saved/*
+
+Collections/*
+
+Developers/*
