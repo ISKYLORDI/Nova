@@ -146,13 +146,13 @@ void AAStarPathfinding::backTrace() {
 		if (currentCoord == startBlockCorrd) {
 			break;
 		}
-		solvedResultCoords.Add(currentCoord);
 		FVector coordDirection = directions[currentCoord.Y][currentCoord.X];
+		solvedResultCoords.Add(coordDirection);
 		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, 0);
 	}
 }
 
-FVector AAStarPathfinding::getNextStep() {
+FVector AAStarPathfinding::getNextStepDirection() {
 	FVector value = solvedResultCoords[-1];
 	solvedResultCoords.Pop();
 	return value;

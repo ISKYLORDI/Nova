@@ -61,7 +61,7 @@ public:
 	void solve();
 
 	UFUNCTION(BlueprintCallable)
-	FVector getNextStep();
+	FVector getNextStepDirection();
 
 	void backTrace();
 	
