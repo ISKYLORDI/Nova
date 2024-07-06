@@ -23,12 +23,9 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-private:
+	
 	// a vector of coords that is the path of the solustion
 	TArray<FVector> solvedResultCoords;
-	// the index of where current actor is at, based on the "solvedResultCoords"
-	int currentPositionIndex = 0;
 
 	// step to start
 	TArray<TArray<float>>  gDistances;
@@ -43,8 +40,7 @@ private:
 
 	// store block corrd that is ready for search
 	TSet<FVector> queueCoords;
-
-public:
+	
 	int xLen, yLen, width, zCoord;
 	FVector startBlockCorrd;
 	FVector endBlockCorrd;
@@ -52,17 +48,18 @@ public:
 
 	void initBlockDistances();
 
-	void updateQueueCoords(int gDistance);
+	void updateQueueCoords(int gDistance, TArray<AActor*> IgnoreWhenTracing);
 
 	UFUNCTION(BlueprintCallable)
 	void setStartEndCoord(int MapXLen, int MapYLen, int BoxWidth, int boxZCoord, FVector BoxStartCorrd, FVector BoxEndCoord);
 	
 	UFUNCTION(BlueprintCallable)
-	void solve();
+	void solve(TArray<AActor*> IgnoreWhenTracing);
 
 	UFUNCTION(BlueprintCallable)
 	FVector getNextStepDirection();
 
 	void backTrace();
+	
 	
 };
