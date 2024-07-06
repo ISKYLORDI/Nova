@@ -194,8 +194,8 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> ignoreA
 				continue;
 			}
 			if (!queueCoords.Contains(tempVector) && !searchedCoords.Contains(tempVector)) {
-				gDistances[tempVector.Y / width][tempVector.X / width] = gDistance;
-				directions[tempVector.Y / width][tempVector.X / width] = dir;
+				gDistances[round(tempVector.Y / width)][round(tempVector.X / width)] = gDistance;
+				directions[round(tempVector.Y / width)][round(tempVector.X / width)] = dir;
 				queueCoords.Add(tempVector);
 			}
 			
@@ -220,14 +220,14 @@ void AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIg
 		// UE_LOG(LogTemp, Log, TEXT("ignore actor num: %d"), IgnoreWhenTracing.Num())
 		
 		for (FVector coord : queueCoords) {
-			float fDistance = gDistances[coord.Y / width][coord.X / width] + hDistances[coord.Y / width][coord.X / width];
+			float fDistance = gDistances[round(coord.Y / width)][round(coord.X / width)] + hDistances[round(coord.Y / width)][round(coord.X / width)];
 			if (fDistance < leastFDistance)
 			{
 				leastFDistance = fDistance;
 				nextStepCoord = coord;
 			} else if (fDistance == leastFDistance)
 			{
-			 	float hDistance = hDistances[coord.Y / width][coord.X / width];
+			 	float hDistance = hDistances[round(coord.Y / width)][round(coord.X / width)];
 			 	if (hDistance < leastHDistance) {
 			 		leastHDistance = hDistance;
 			 		nextStepCoord = coord;
@@ -253,7 +253,7 @@ void AAStarPathfinding::backTrace() {
 		abs(currentCoord.Y - startBlockCorrd.Y) <= 10) {
 			break;
 		}
-		FVector coordDirection = directions[currentCoord.Y / width][currentCoord.X / width];
+		FVector coordDirection = directions[round(currentCoord.Y / width)][round(currentCoord.X / width)];
 		solvedResultCoords.Add(coordDirection);
 		
 		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord - coordDirection.Z);
