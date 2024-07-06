@@ -39,8 +39,8 @@ void AAStarPathfinding::setStartEndCoord(int MapXLen,
 	this->yLen = MapYLen;
 	this->width = BoxWidth;
 	this->zCoord = boxZCoord;
-	this->startBlockCorrd = BoxStartCorrd;
-	this->endBlockCorrd = BoxEndCoord;
+	this->startBlockCorrd = FVector(BoxStartCorrd.X - width / 2, BoxStartCorrd.Y - width / 2, BoxStartCorrd.Z);
+	this->endBlockCorrd =  FVector(BoxEndCoord.X - width / 2, BoxEndCoord.Y - width / 2, BoxEndCoord.Z);
 	initBlockDistances();
 	searchedCoords.Add(startBlockCorrd);
 }
