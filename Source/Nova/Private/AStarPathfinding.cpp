@@ -76,14 +76,19 @@ void AAStarPathfinding::initBlockDistances() {
 
 
 void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
-	TArray<FVector> dirs = {FVector(width, 0, 0),FVector(-width, 0, 0)
-		,FVector(0, width, 0),FVector(0, -width, 0)};
+	TArray<FVector> dirs = {
+		FVector(width, 0, 0),FVector(-width, 0, 0),
+		FVector(0, width, 0),FVector(0, -width, 0),
+		FVector(width, width, 0),FVector(width, -width, 0),
+		FVector(-width, width, 0),FVector(-width, -width, 0),
+	};
 	GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString::FromInt(searchedCoords.Num()));
 	TArray<AActor*> AllIgnore = otherNPCActor;
 	AllIgnore.Append(TArray<AActor*>({selfActor, playerActor}));
 	
 	for (FVector coord : searchedCoords) {
-		for (FVector dir : dirs) {
+		for (FVector dir : dirs)
+		{
 			FVector tempVector = coord;
 			tempVector.X += dir.X;
 			tempVector.Y += dir.Y;
@@ -101,32 +106,36 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 			// GEngine->AddOnScreenDebugMessage(9, 60.f, FColor::Black, Start.ToString());
 			// GEngine->AddOnScreenDebugMessage(10, 60.f, FColor::Black,  End.ToString());
 
-			// FRONT
+			// FRONT 从前面的上面往中间扫描
 			FHitResult BoxHit;
 			if (UKismetSystemLibrary::BoxTraceSingle(
 			this,
-			Start,																																																		
-			End,
-			FVector(5.f , 5.f, 10.f),
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z + width),																																																		
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z),
+			FVector(1.f , 1.f, 1.f),
 			this->GetActorRotation(),
 			ETraceTypeQuery::TraceTypeQuery1,
 			false,
-			AllIgnore,
+			{selfActor, playerActor},
 			EDrawDebugTrace::None,
 			BoxHit,
 			true))
 			{
-				// UP 扫描头顶一层，可以通过则可以攀爬
-
+				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				{
+					continue;
+				}
+				
+				// UP 从前面的上上面往上面扫描
 				if (UKismetSystemLibrary::BoxTraceSingle(
 					this,
-					FVector(coord.X + width / 2, coord.Y + width / 2, coord.Z + width),
+					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z + width * 2),
 					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z + width),
-					FVector(5.f , 5.f, 10.f),
+					FVector(1.f , 1.f, 1.f),
 					this->GetActorRotation(),
 					ETraceTypeQuery::TraceTypeQuery1,
 					false,
-					AllIgnore,
+					{selfActor, playerActor},
 					EDrawDebugTrace::None,
 					BoxHit,
 					true))
@@ -138,39 +147,53 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 				
 			}
 			// Down
-			// scan 1 前面往下扫描一格
-			if (!UKismetSystemLibrary::BoxTraceSingle(
+			// scan 前面往下扫描一格
+			if (UKismetSystemLibrary::BoxTraceSingle(
 			this,
 			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z),
 			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width),
-			FVector(5.f , 5.f, 10.f),
+			FVector(1.f , 1.f, 1.f),
 			this->GetActorRotation(),
 			ETraceTypeQuery::TraceTypeQuery1,
 			false,
-			AllIgnore,
+			{selfActor, playerActor},
 			EDrawDebugTrace::None,
 			BoxHit,
 			true))
 			{
-				// 如果没有扫描到，继续扫描一格
-				if (!UKismetSystemLibrary::BoxTraceSingle(
-					this,
-					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z- width),
-					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width * 2),
-					FVector(5.f , 5.f, 10.f),
-					this->GetActorRotation(),
-					ETraceTypeQuery::TraceTypeQuery1,
-					false,
-					AllIgnore,
-					EDrawDebugTrace::None,
-					BoxHit,
-					true))
+				// 扫描到了物品
+				if (otherNPCActor.Contains(BoxHit.GetActor()))
 				{
-					// 依然没有陆地，无法通过
+					// 如果是角色 直接推出
 					continue;
 				}
-				// 拥有路段 下降一各
+				// 否则直行
+			} else if (UKismetSystemLibrary::BoxTraceSingle(
+				this,
+				FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z- width),
+				FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width * 2),
+				FVector(1.f , 1.f, 1.f),
+				this->GetActorRotation(),
+				ETraceTypeQuery::TraceTypeQuery1,
+				false,
+				{selfActor, playerActor},
+				EDrawDebugTrace::None,
+				BoxHit,
+				true))
+			{
+				// 如果没有扫描到，继续扫描一格
+				// 扫描到了物品
+				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				{
+					// 如果是角色 直接推出
+					continue;
+				}
+				// 否下行
 				dir.Z = -width;
+
+			} else {
+				// 依然没有陆地，无法通过
+				continue;
 			}
 			if (!queueCoords.Contains(tempVector) && !searchedCoords.Contains(tempVector)) {
 				gDistances[tempVector.Y / width][tempVector.X / width] = gDistance;
