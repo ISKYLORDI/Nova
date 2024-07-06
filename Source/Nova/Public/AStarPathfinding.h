@@ -48,13 +48,13 @@ public:
 
 	void initBlockDistances();
 
-	void updateQueueCoords(int gDistance, TArray<AActor*> IgnoreWhenTracing);
+	void updateQueueCoords(int gDistance,  AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor);
 
 	UFUNCTION(BlueprintCallable)
 	void setStartEndCoord(int MapXLen, int MapYLen, int BoxWidth, int boxZCoord, FVector BoxStartCorrd, FVector BoxEndCoord);
 	
 	UFUNCTION(BlueprintCallable)
-	void solve(TArray<AActor*> IgnoreWhenTracing);
+	void solve( AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor);
 
 	UFUNCTION(BlueprintCallable)
 	FVector getNextStepDirection();

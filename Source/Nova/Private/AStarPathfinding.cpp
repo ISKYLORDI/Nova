@@ -75,10 +75,13 @@ void AAStarPathfinding::initBlockDistances() {
 }
 
 
-void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> IgnoreWhenTracing) {
+void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
 	TArray<FVector> dirs = {FVector(width, 0, 0),FVector(-width, 0, 0)
 		,FVector(0, width, 0),FVector(0, -width, 0)};
 	GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString::FromInt(searchedCoords.Num()));
+	TArray<AActor*> AllIgnore = otherNPCActor;
+	AllIgnore.Append(TArray<AActor*>({selfActor, playerActor}));
+	
 	for (FVector coord : searchedCoords) {
 		for (FVector dir : dirs) {
 			FVector tempVector = coord;
@@ -98,62 +101,105 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> IgnoreW
 			// GEngine->AddOnScreenDebugMessage(9, 60.f, FColor::Black, Start.ToString());
 			// GEngine->AddOnScreenDebugMessage(10, 60.f, FColor::Black,  End.ToString());
 
+			// FRONT
 			FHitResult BoxHit;
 			if (UKismetSystemLibrary::BoxTraceSingle(
 			this,
 			Start,																																																		
 			End,
-			FVector(20.f , 20.f, 30.f),
+			FVector(5.f , 5.f, 10.f),
 			this->GetActorRotation(),
 			ETraceTypeQuery::TraceTypeQuery1,
 			false,
-			IgnoreWhenTracing,
+			AllIgnore,
 			EDrawDebugTrace::None,
 			BoxHit,
 			true))
 			{
-				// UE_LOG(LogTemp, Log, TEXT("clashed"))
-				// GEngine->AddOnScreenDebugMessage(11, 60.f, FColor::Black, BoxHit.ToString());
-				continue;
+				// UP 扫描头顶一层，可以通过则可以攀爬
+
+				if (UKismetSystemLibrary::BoxTraceSingle(
+					this,
+					FVector(coord.X + width / 2, coord.Y + width / 2, coord.Z + width),
+					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z + width),
+					FVector(5.f , 5.f, 10.f),
+					this->GetActorRotation(),
+					ETraceTypeQuery::TraceTypeQuery1,
+					false,
+					AllIgnore,
+					EDrawDebugTrace::None,
+					BoxHit,
+					true))
+				{
+					continue;
+				}
+				
+				dir.Z = width;
 				
 			}
-			
+			// Down
+			// scan 1 前面往下扫描一格
+			if (!UKismetSystemLibrary::BoxTraceSingle(
+			this,
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z),
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width),
+			FVector(5.f , 5.f, 10.f),
+			this->GetActorRotation(),
+			ETraceTypeQuery::TraceTypeQuery1,
+			false,
+			AllIgnore,
+			EDrawDebugTrace::None,
+			BoxHit,
+			true))
+			{
+				// 如果没有扫描到，继续扫描一格
+				if (!UKismetSystemLibrary::BoxTraceSingle(
+					this,
+					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z- width),
+					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width * 2),
+					FVector(5.f , 5.f, 10.f),
+					this->GetActorRotation(),
+					ETraceTypeQuery::TraceTypeQuery1,
+					false,
+					AllIgnore,
+					EDrawDebugTrace::None,
+					BoxHit,
+					true))
+				{
+					// 依然没有陆地，无法通过
+					continue;
+				}
+				// 拥有路段 下降一各
+				dir.Z = -width;
+			}
 			if (!queueCoords.Contains(tempVector) && !searchedCoords.Contains(tempVector)) {
 				gDistances[tempVector.Y / width][tempVector.X / width] = gDistance;
 				directions[tempVector.Y / width][tempVector.X / width] = dir;
 				queueCoords.Add(tempVector);
 			}
+			
 		}
-
 	}
 	// GEngine->AddOnScreenDebugMessage(3, 60.f, FColor::Black, FString("updateQueueCoords Done!"));
-
 }
 
 
-void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
+void AAStarPathfinding::solve( AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
 	FVector nextStepCoord = startBlockCorrd;
 	
 	int currentGDistance = width;
-
-
 	
-	// for (int i : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 ,20, 21}) {
 	while (true) {
 		float leastFDistance = 10000000;
 		float leastHDistance = 10000000;
 
 		searchedCoords.Add(nextStepCoord);
 		queueCoords.Remove(nextStepCoord);
-		updateQueueCoords(currentGDistance, IgnoreWhenTracing);
+		updateQueueCoords(currentGDistance, selfActor, playerActor, otherNPCActor);
 		// UE_LOG(LogTemp, Log, TEXT("ignore actor num: %d"), IgnoreWhenTracing.Num())
 		
 		for (FVector coord : queueCoords) {
 			float fDistance = gDistances[coord.Y / width][coord.X / width] + hDistances[coord.Y / width][coord.X / width];
-			// UE_LOG(LogTemp, Log, TEXT("curr coord: %s"), *coord.ToString())
-			// UE_LOG(LogTemp, Log, TEXT("f Num: %f"), fDistance)
-			// UE_LOG(LogTemp, Log, TEXT("g Num: %f"), gDistances[coord.Y / width][coord.X / width])
-			// UE_LOG(LogTemp, Log, TEXT("h Num: %f"), hDistances[coord.Y / width][coord.X / width])
 			if (fDistance < leastFDistance)
 			{
 				leastFDistance = fDistance;
@@ -167,19 +213,13 @@ void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
 			 	}
 			}
 		}
-		// UE_LOG(LogTemp, Log, TEXT("Queued Num: %d"), queueCoords.Num())
-		// UE_LOG(LogTemp, Log, TEXT("Serched Num: %d"), searchedCoords.Num())
-		// UE_LOG(LogTemp, Log, TEXT("Serched Num: %s"), *nextStepCoord.ToString())
-		// UE_LOG(LogTemp, Log, TEXT("end blcok cood: %s"), *endBlockCorrd.ToString())
 		
-		if (nextStepCoord.Equals(endBlockCorrd)) {
+		if (abs(nextStepCoord.X - endBlockCorrd.X) <= 10 &&
+		abs(nextStepCoord.Y - endBlockCorrd.Y) <= 10) {
 			break;
 		}
 
-		// updateQueueCoords(currentGDistance);
-
 		currentGDistance += width;
-		// break;
 	}
 	backTrace();
 	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
@@ -188,13 +228,14 @@ void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
 void AAStarPathfinding::backTrace() {
 	FVector currentCoord = endBlockCorrd;
 	while (true) {
-		if (currentCoord.Equals(startBlockCorrd)) {
+		if (abs(currentCoord.X - startBlockCorrd.X) <= 10 &&
+		abs(currentCoord.Y - startBlockCorrd.Y) <= 10) {
 			break;
 		}
 		FVector coordDirection = directions[currentCoord.Y / width][currentCoord.X / width];
 		solvedResultCoords.Add(coordDirection);
 		
-		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord);
+		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord - coordDirection.Z);
 	}
 	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("backTrace Done!"));
 }
