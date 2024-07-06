@@ -5,7 +5,6 @@
 
 
 
-
 // Sets default values
 AAStarPathfinding::AAStarPathfinding()
 {
@@ -35,6 +34,14 @@ void AAStarPathfinding::setStartEndCoord(int MapXLen,
 	int MapYLen, int BoxWidth, int boxZCoord,
 	FVector BoxStartCorrd, FVector BoxEndCoord)
 {
+	solvedResultCoords.Empty();
+	gDistances.Empty();
+	hDistances.Empty();
+	directions.Empty();
+	searchedCoords.Empty();
+	queueCoords.Empty();
+
+	
 	this->xLen = MapXLen;
 	this->yLen = MapYLen;
 	this->width = BoxWidth;
@@ -42,118 +49,222 @@ void AAStarPathfinding::setStartEndCoord(int MapXLen,
 	this->startBlockCorrd = FVector(BoxStartCorrd.X - width / 2, BoxStartCorrd.Y - width / 2, BoxStartCorrd.Z);
 	this->endBlockCorrd =  FVector(BoxEndCoord.X - width / 2, BoxEndCoord.Y - width / 2, BoxEndCoord.Z);
 	initBlockDistances();
-	searchedCoords.Add(startBlockCorrd);
+	// searchedCoords.Add(startBlockCorrd);
+	// GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString("setStartEndCoord Done!"));
+	//
 }
 //
 //
 void AAStarPathfinding::initBlockDistances() {
+	
 	for (int y = 0; y < yLen; y += width) {
 		TArray<float> tempGDistance;
 		TArray<float> tempHDistance;
 		TArray<FVector> tempDirection;
 		for (int x = 0; x < xLen; x += width ) {
-			tempGDistance.Add(1000000);
-			tempHDistance.Add(abs(endBlockCorrd[0] - x) + abs(endBlockCorrd[1] - y));
+			tempGDistance.Add(0);
+			tempHDistance.Add( sqrt(pow(abs(endBlockCorrd.X - x), 2) + pow(abs(endBlockCorrd.Y - y),2) * 2));
 			tempDirection.Add(FVector());
 		}
 		gDistances.Add(tempGDistance);
 		hDistances.Add(tempHDistance);
 		directions.Add(tempDirection);
 	}
+	// GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString("initBlockDistances Done!"));
+	// GEngine->AddOnScreenDebugMessage(2, 60.f, FColor::Black, FString::FromInt(directions.Num()));
 }
 
 
-void AAStarPathfinding::updateQueueCoords(int gDistance) {
-	for (FVector coord : searchedCoords.Array()) {
-		for (int dX : {-width, width}) {
-			for (int dY : {-width, width}) {
-				FVector tempVector = coord;
-				tempVector.X += dX;
-				tempVector.Y += dY;
-				if (
-					tempVector.X >= xLen ||
-					tempVector.X < 0 ||
-					tempVector.Y >= yLen ||
-					tempVector.Y < 0
-					) {
+void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
+	TArray<FVector> dirs = {
+		FVector(width, 0, 0),FVector(-width, 0, 0),
+		FVector(0, width, 0),FVector(0, -width, 0),
+		FVector(width, width, 0),FVector(width, -width, 0),
+		FVector(-width, width, 0),FVector(-width, -width, 0),
+	};
+	GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString::FromInt(searchedCoords.Num()));
+	TArray<AActor*> AllIgnore = otherNPCActor;
+	AllIgnore.Append(TArray<AActor*>({selfActor, playerActor}));
+	
+	for (FVector coord : searchedCoords) {
+		for (FVector dir : dirs)
+		{
+			FVector tempVector = coord;
+			tempVector.X += dir.X;
+			tempVector.Y += dir.Y;
+			if (
+			tempVector.X >= xLen ||
+			tempVector.X < 0 ||
+			tempVector.Y >= yLen ||
+			tempVector.Y < 0
+			) {
+				UE_LOG(LogTemp, Log, TEXT("passed"))
+				continue;
+			}
+			FVector Start = FVector(coord.X + width / 2, coord.Y + width / 2, coord.Z);
+			FVector End = FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z);
+			// GEngine->AddOnScreenDebugMessage(9, 60.f, FColor::Black, Start.ToString());
+			// GEngine->AddOnScreenDebugMessage(10, 60.f, FColor::Black,  End.ToString());
+
+			// FRONT 从前面的上面往中间扫描
+			FHitResult BoxHit;
+			if (UKismetSystemLibrary::BoxTraceSingle(
+			this,
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z + width),																																																		
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z),
+			FVector(1.f , 1.f, 1.f),
+			this->GetActorRotation(),
+			ETraceTypeQuery::TraceTypeQuery1,
+			false,
+			{selfActor, playerActor},
+			EDrawDebugTrace::None,
+			BoxHit,
+			true))
+			{
+				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				{
 					continue;
 				}
 				
-				FHitResult BoxHit;
+				// UP 从前面的上上面往上面扫描
 				if (UKismetSystemLibrary::BoxTraceSingle(
 					this,
-					coord,
-					tempVector,
-					FVector(width/2, width/2, width/2),
+					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z + width * 2),
+					FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z + width),
+					FVector(1.f , 1.f, 1.f),
 					this->GetActorRotation(),
 					ETraceTypeQuery::TraceTypeQuery1,
 					false,
-					TArray<AActor*>(),
+					{selfActor, playerActor},
 					EDrawDebugTrace::None,
 					BoxHit,
 					true))
 				{
 					continue;
 				}
-				if (queueCoords.Contains(tempVector)) {
-					gDistances[tempVector.Y][tempVector.X] = gDistance;
-
-					directions[tempVector.Y][tempVector.X] = FVector(dX, dY, 0);
-					queueCoords.Add(tempVector);
-				}
+				
+				dir.Z = width;
+				
 			}
-		}
+			// Down
+			// scan 前面往下扫描一格
+			if (UKismetSystemLibrary::BoxTraceSingle(
+			this,
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z),
+			FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width),
+			FVector(1.f , 1.f, 1.f),
+			this->GetActorRotation(),
+			ETraceTypeQuery::TraceTypeQuery1,
+			false,
+			{selfActor, playerActor},
+			EDrawDebugTrace::None,
+			BoxHit,
+			true))
+			{
+				// 扫描到了物品
+				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				{
+					// 如果是角色 直接推出
+					continue;
+				}
+				// 否则直行
+			} else if (UKismetSystemLibrary::BoxTraceSingle(
+				this,
+				FVector(tempVector.X + width / 2, tempVector.Y + width / 2, coord.Z- width),
+				FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z - width * 2),
+				FVector(1.f , 1.f, 1.f),
+				this->GetActorRotation(),
+				ETraceTypeQuery::TraceTypeQuery1,
+				false,
+				{selfActor, playerActor},
+				EDrawDebugTrace::None,
+				BoxHit,
+				true))
+			{
+				// 如果没有扫描到，继续扫描一格
+				// 扫描到了物品
+				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				{
+					// 如果是角色 直接推出
+					continue;
+				}
+				// 否下行
+				dir.Z = -width;
 
+			} else {
+				// 依然没有陆地，无法通过
+				continue;
+			}
+			if (!queueCoords.Contains(tempVector) && !searchedCoords.Contains(tempVector)) {
+				gDistances[tempVector.Y / width][tempVector.X / width] = gDistance;
+				directions[tempVector.Y / width][tempVector.X / width] = dir;
+				queueCoords.Add(tempVector);
+			}
+			
+		}
 	}
+	// GEngine->AddOnScreenDebugMessage(3, 60.f, FColor::Black, FString("updateQueueCoords Done!"));
 }
 
 
-void AAStarPathfinding::solve() {
+void AAStarPathfinding::solve( AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
 	FVector nextStepCoord = startBlockCorrd;
+	
 	int currentGDistance = width;
+	
 	while (true) {
-		float leastFDistance = 1000000;
-		float leastHDistance = 1000000;
-		for (FVector coord : queueCoords.Array()) {
-			float fDistance = gDistances[coord.Y][coord.X] + hDistances[coord.Y][coord.X];
-			if (fDistance < leastFDistance) {
+		float leastFDistance = 10000000;
+		float leastHDistance = 10000000;
+
+		searchedCoords.Add(nextStepCoord);
+		queueCoords.Remove(nextStepCoord);
+		updateQueueCoords(currentGDistance, selfActor, playerActor, otherNPCActor);
+		// UE_LOG(LogTemp, Log, TEXT("ignore actor num: %d"), IgnoreWhenTracing.Num())
+		
+		for (FVector coord : queueCoords) {
+			float fDistance = gDistances[coord.Y / width][coord.X / width] + hDistances[coord.Y / width][coord.X / width];
+			if (fDistance < leastFDistance)
+			{
 				leastFDistance = fDistance;
 				nextStepCoord = coord;
-			}
-			else if (fDistance == leastFDistance) {
-				float hDistance = hDistances[coord.Y][coord.X];
-				if (hDistance < leastHDistance) {
-					leastHDistance = hDistance;
-					nextStepCoord = coord;
-				}
+			} else if (fDistance == leastFDistance)
+			{
+			 	float hDistance = hDistances[coord.Y / width][coord.X / width];
+			 	if (hDistance < leastHDistance) {
+			 		leastHDistance = hDistance;
+			 		nextStepCoord = coord;
+			 	}
 			}
 		}
-
-		if (nextStepCoord == endBlockCorrd) {
+		
+		if (abs(nextStepCoord.X - endBlockCorrd.X) <= 10 &&
+		abs(nextStepCoord.Y - endBlockCorrd.Y) <= 10) {
 			break;
 		}
-
-		updateQueueCoords(currentGDistance);
 
 		currentGDistance += width;
 	}
 	backTrace();
+	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
 }
 
 void AAStarPathfinding::backTrace() {
 	FVector currentCoord = endBlockCorrd;
 	while (true) {
-		if (currentCoord == startBlockCorrd) {
+		if (abs(currentCoord.X - startBlockCorrd.X) <= 10 &&
+		abs(currentCoord.Y - startBlockCorrd.Y) <= 10) {
 			break;
 		}
-		FVector coordDirection = directions[currentCoord.Y][currentCoord.X];
+		FVector coordDirection = directions[currentCoord.Y / width][currentCoord.X / width];
 		solvedResultCoords.Add(coordDirection);
-		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, 0);
+		
+		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord - coordDirection.Z);
 	}
+	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("backTrace Done!"));
 }
 
 FVector AAStarPathfinding::getNextStepDirection() {
-	FVector value = solvedResultCoords[-1];
-	solvedResultCoords.Pop();
+	FVector value = solvedResultCoords.Pop();
+	// GEngine->AddOnScreenDebugMessage(6, 60.f, FColor::Black, FString("getNextStepDirection Done!"));
 	return value;
 }
