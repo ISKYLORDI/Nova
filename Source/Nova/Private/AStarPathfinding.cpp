@@ -3,9 +3,6 @@
 
 #include "AStarPathfinding.h"
 
-#include <string>
-
-#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -53,8 +50,8 @@ void AAStarPathfinding::setStartEndCoord(int MapXLen,
 	this->endBlockCorrd =  FVector(BoxEndCoord.X - width / 2, BoxEndCoord.Y - width / 2, BoxEndCoord.Z);
 	initBlockDistances();
 	// searchedCoords.Add(startBlockCorrd);
-	GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString("setStartEndCoord Done!"));
-	
+	// GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString("setStartEndCoord Done!"));
+	//
 }
 //
 //
@@ -73,7 +70,7 @@ void AAStarPathfinding::initBlockDistances() {
 		hDistances.Add(tempHDistance);
 		directions.Add(tempDirection);
 	}
-	GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString("initBlockDistances Done!"));
+	// GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString("initBlockDistances Done!"));
 	// GEngine->AddOnScreenDebugMessage(2, 60.f, FColor::Black, FString::FromInt(directions.Num()));
 }
 
@@ -93,20 +90,20 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> IgnoreW
 			tempVector.Y >= yLen ||
 			tempVector.Y < 0
 			) {
-				// UE_LOG(LogTemp, Log, TEXT("passed"))
+				UE_LOG(LogTemp, Log, TEXT("passed"))
 				continue;
 			}
 			FVector Start = FVector(coord.X + width / 2, coord.Y + width / 2, coord.Z);
 			FVector End = FVector(tempVector.X + width / 2, tempVector.Y + width / 2, tempVector.Z);
-			GEngine->AddOnScreenDebugMessage(9, 60.f, FColor::Black, Start.ToString());
-			GEngine->AddOnScreenDebugMessage(10, 60.f, FColor::Black,  End.ToString());
+			// GEngine->AddOnScreenDebugMessage(9, 60.f, FColor::Black, Start.ToString());
+			// GEngine->AddOnScreenDebugMessage(10, 60.f, FColor::Black,  End.ToString());
 
 			FHitResult BoxHit;
 			if (UKismetSystemLibrary::BoxTraceSingle(
 			this,
 			Start,																																																		
 			End,
-			FVector(1.f, 1.f, 1.f),
+			FVector(20.f , 20.f, 30.f),
 			this->GetActorRotation(),
 			ETraceTypeQuery::TraceTypeQuery1,
 			false,
@@ -116,8 +113,7 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> IgnoreW
 			true))
 			{
 				// UE_LOG(LogTemp, Log, TEXT("clashed"))
-				GEngine->AddOnScreenDebugMessage(11, 60.f, FColor::Black, BoxHit.ToString());
-
+				// GEngine->AddOnScreenDebugMessage(11, 60.f, FColor::Black, BoxHit.ToString());
 				continue;
 				
 			}
@@ -127,11 +123,10 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> IgnoreW
 				directions[tempVector.Y / width][tempVector.X / width] = dir;
 				queueCoords.Add(tempVector);
 			}
-			
 		}
 
 	}
-	GEngine->AddOnScreenDebugMessage(3, 60.f, FColor::Black, FString("updateQueueCoords Done!"));
+	// GEngine->AddOnScreenDebugMessage(3, 60.f, FColor::Black, FString("updateQueueCoords Done!"));
 
 }
 
@@ -140,7 +135,10 @@ void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
 	FVector nextStepCoord = startBlockCorrd;
 	
 	int currentGDistance = width;
-	// for (int i : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}) {
+
+
+	
+	// for (int i : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 ,20, 21}) {
 	while (true) {
 		float leastFDistance = 10000000;
 		float leastHDistance = 10000000;
@@ -148,13 +146,14 @@ void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
 		searchedCoords.Add(nextStepCoord);
 		queueCoords.Remove(nextStepCoord);
 		updateQueueCoords(currentGDistance, IgnoreWhenTracing);
+		// UE_LOG(LogTemp, Log, TEXT("ignore actor num: %d"), IgnoreWhenTracing.Num())
 		
 		for (FVector coord : queueCoords) {
 			float fDistance = gDistances[coord.Y / width][coord.X / width] + hDistances[coord.Y / width][coord.X / width];
-			UE_LOG(LogTemp, Log, TEXT("curr coord: %s"), *coord.ToString())
-			UE_LOG(LogTemp, Log, TEXT("f Num: %f"), fDistance)
-			UE_LOG(LogTemp, Log, TEXT("g Num: %f"), gDistances[coord.Y / width][coord.X / width])
-			UE_LOG(LogTemp, Log, TEXT("h Num: %f"), hDistances[coord.Y / width][coord.X / width])
+			// UE_LOG(LogTemp, Log, TEXT("curr coord: %s"), *coord.ToString())
+			// UE_LOG(LogTemp, Log, TEXT("f Num: %f"), fDistance)
+			// UE_LOG(LogTemp, Log, TEXT("g Num: %f"), gDistances[coord.Y / width][coord.X / width])
+			// UE_LOG(LogTemp, Log, TEXT("h Num: %f"), hDistances[coord.Y / width][coord.X / width])
 			if (fDistance < leastFDistance)
 			{
 				leastFDistance = fDistance;
@@ -168,10 +167,10 @@ void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
 			 	}
 			}
 		}
-		UE_LOG(LogTemp, Log, TEXT("Queued Num: %d"), queueCoords.Num())
-		UE_LOG(LogTemp, Log, TEXT("Serched Num: %d"), searchedCoords.Num())
-		UE_LOG(LogTemp, Log, TEXT("Serched Num: %s"), *nextStepCoord.ToString())
-		UE_LOG(LogTemp, Log, TEXT("end blcok cood: %s"), *endBlockCorrd.ToString())
+		// UE_LOG(LogTemp, Log, TEXT("Queued Num: %d"), queueCoords.Num())
+		// UE_LOG(LogTemp, Log, TEXT("Serched Num: %d"), searchedCoords.Num())
+		// UE_LOG(LogTemp, Log, TEXT("Serched Num: %s"), *nextStepCoord.ToString())
+		// UE_LOG(LogTemp, Log, TEXT("end blcok cood: %s"), *endBlockCorrd.ToString())
 		
 		if (nextStepCoord.Equals(endBlockCorrd)) {
 			break;
@@ -183,13 +182,13 @@ void AAStarPathfinding::solve(TArray<AActor*> IgnoreWhenTracing) {
 		// break;
 	}
 	backTrace();
-	GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
+	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
 }
 
 void AAStarPathfinding::backTrace() {
 	FVector currentCoord = endBlockCorrd;
 	while (true) {
-		if (currentCoord == startBlockCorrd) {
+		if (currentCoord.Equals(startBlockCorrd)) {
 			break;
 		}
 		FVector coordDirection = directions[currentCoord.Y / width][currentCoord.X / width];
@@ -197,11 +196,11 @@ void AAStarPathfinding::backTrace() {
 		
 		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord);
 	}
-	GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("backTrace Done!"));
+	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("backTrace Done!"));
 }
 
 FVector AAStarPathfinding::getNextStepDirection() {
 	FVector value = solvedResultCoords.Pop();
-	GEngine->AddOnScreenDebugMessage(6, 60.f, FColor::Black, FString("getNextStepDirection Done!"));
+	// GEngine->AddOnScreenDebugMessage(6, 60.f, FColor::Black, FString("getNextStepDirection Done!"));
 	return value;
 }
