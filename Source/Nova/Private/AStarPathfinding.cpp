@@ -75,7 +75,7 @@ void AAStarPathfinding::initBlockDistances() {
 }
 
 
-void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
+void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors) {
 	TArray<FVector> dirs = {
 		FVector(width, 0, 0),FVector(-width, 0, 0),
 		FVector(0, width, 0),FVector(0, -width, 0),
@@ -83,8 +83,6 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 		FVector(-width, width, 0),FVector(-width, -width, 0),
 	};
 	GEngine->AddOnScreenDebugMessage(1, 60.f, FColor::Black, FString::FromInt(searchedCoords.Num()));
-	TArray<AActor*> AllIgnore = otherNPCActor;
-	AllIgnore.Append(TArray<AActor*>({selfActor, playerActor}));
 	
 	for (FVector coord : searchedCoords) {
 		for (FVector dir : dirs)
@@ -116,12 +114,12 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 			this->GetActorRotation(),
 			ETraceTypeQuery::TraceTypeQuery1,
 			false,
-			{selfActor, playerActor},
+			ignoreActors,
 			EDrawDebugTrace::None,
 			BoxHit,
 			true))
 			{
-				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				if (noIgnoreActors.Contains(BoxHit.GetActor()))
 				{
 					continue;
 				}
@@ -135,7 +133,7 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 					this->GetActorRotation(),
 					ETraceTypeQuery::TraceTypeQuery1,
 					false,
-					{selfActor, playerActor},
+					ignoreActors,
 					EDrawDebugTrace::None,
 					BoxHit,
 					true))
@@ -156,13 +154,13 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 			this->GetActorRotation(),
 			ETraceTypeQuery::TraceTypeQuery1,
 			false,
-			{selfActor, playerActor},
+			ignoreActors,
 			EDrawDebugTrace::None,
 			BoxHit,
 			true))
 			{
 				// 扫描到了物品
-				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				if (noIgnoreActors.Contains(BoxHit.GetActor()))
 				{
 					// 如果是角色 直接推出
 					continue;
@@ -176,14 +174,14 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 				this->GetActorRotation(),
 				ETraceTypeQuery::TraceTypeQuery1,
 				false,
-				{selfActor, playerActor},
+				ignoreActors,
 				EDrawDebugTrace::None,
 				BoxHit,
 				true))
 			{
 				// 如果没有扫描到，继续扫描一格
 				// 扫描到了物品
-				if (otherNPCActor.Contains(BoxHit.GetActor()))
+				if (noIgnoreActors.Contains(BoxHit.GetActor()))
 				{
 					// 如果是角色 直接推出
 					continue;
@@ -196,8 +194,8 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 				continue;
 			}
 			if (!queueCoords.Contains(tempVector) && !searchedCoords.Contains(tempVector)) {
-				gDistances[tempVector.Y / width][tempVector.X / width] = gDistance;
-				directions[tempVector.Y / width][tempVector.X / width] = dir;
+				gDistances[round(tempVector.Y / width)][round(tempVector.X / width)] = gDistance;
+				directions[round(tempVector.Y / width)][round(tempVector.X / width)] = dir;
 				queueCoords.Add(tempVector);
 			}
 			
@@ -207,7 +205,7 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, AActor* selfActor, AAct
 }
 
 
-void AAStarPathfinding::solve( AActor* selfActor, AActor* playerActor, TArray<AActor*> otherNPCActor) {
+void AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors) {
 	FVector nextStepCoord = startBlockCorrd;
 	
 	int currentGDistance = width;
@@ -218,18 +216,18 @@ void AAStarPathfinding::solve( AActor* selfActor, AActor* playerActor, TArray<AA
 
 		searchedCoords.Add(nextStepCoord);
 		queueCoords.Remove(nextStepCoord);
-		updateQueueCoords(currentGDistance, selfActor, playerActor, otherNPCActor);
+		updateQueueCoords(currentGDistance, ignoreActors, noIgnoreActors);
 		// UE_LOG(LogTemp, Log, TEXT("ignore actor num: %d"), IgnoreWhenTracing.Num())
 		
 		for (FVector coord : queueCoords) {
-			float fDistance = gDistances[coord.Y / width][coord.X / width] + hDistances[coord.Y / width][coord.X / width];
+			float fDistance = gDistances[round(coord.Y / width)][round(coord.X / width)] + hDistances[round(coord.Y / width)][round(coord.X / width)];
 			if (fDistance < leastFDistance)
 			{
 				leastFDistance = fDistance;
 				nextStepCoord = coord;
 			} else if (fDistance == leastFDistance)
 			{
-			 	float hDistance = hDistances[coord.Y / width][coord.X / width];
+			 	float hDistance = hDistances[round(coord.Y / width)][round(coord.X / width)];
 			 	if (hDistance < leastHDistance) {
 			 		leastHDistance = hDistance;
 			 		nextStepCoord = coord;
@@ -255,7 +253,7 @@ void AAStarPathfinding::backTrace() {
 		abs(currentCoord.Y - startBlockCorrd.Y) <= 10) {
 			break;
 		}
-		FVector coordDirection = directions[currentCoord.Y / width][currentCoord.X / width];
+		FVector coordDirection = directions[round(currentCoord.Y / width)][round(currentCoord.X / width)];
 		solvedResultCoords.Add(coordDirection);
 		
 		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord - coordDirection.Z);
