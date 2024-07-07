@@ -254,7 +254,7 @@ bool AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIg
 	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
 }
 
-bool AAStarPathfinding::backTrace() {
+void AAStarPathfinding::backTrace() {
 	FVector currentCoord = endBlockCorrd;
 	int count = 0;
 	while (true) {
