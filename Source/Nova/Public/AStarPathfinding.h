@@ -59,7 +59,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FVector getNextStepDirection();
 
-	void backTrace();
+	bool backTrace();
 	
 	
 };

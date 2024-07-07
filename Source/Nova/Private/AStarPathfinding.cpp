@@ -96,7 +96,7 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> ignoreA
 			tempVector.Y >= yLen ||
 			tempVector.Y < 0
 			) {
-				UE_LOG(LogTemp, Log, TEXT("passed"))
+				// UE_LOG(LogTemp, Log, TEXT("passed"))
 				continue;
 			}
 			// GEngine->AddOnScreenDebugMessage(9, 60.f, FColor::Black, Start.ToString());
@@ -203,7 +203,8 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> ignoreA
 			
 		}
 	}
-	// GEngine->AddOnScreenDebugMessage(3, 60.f, FColor::Black, FString("updateQueueCoords Done!"));
+	UE_LOG(LogTemp, Log, TEXT("updateQueueCoords Done!"))
+	// GEngine->AddOnScreenDebugMessage(3, 60.f, FColor::Black, FString(""));
 }
 
 
@@ -219,7 +220,7 @@ bool AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIg
 		searchedCoords.Add(nextStepCoord);
 		queueCoords.Remove(nextStepCoord);
 		updateQueueCoords(currentGDistance, ignoreActors, noIgnoreActors);
-		// UE_LOG(LogTemp, Log, TEXT("ignore actor num: %d"), IgnoreWhenTracing.Num())
+
 		
 		for (FVector coord : queueCoords) {
 			float fDistance = gDistances[coord.Y / width][coord.X / width] + hDistances[coord.Y / width][coord.X / width];
@@ -237,8 +238,9 @@ bool AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIg
 			}
 		}
 		
-		if (abs(nextStepCoord.X - endBlockCorrd.X) <= 10 &&
-		abs(nextStepCoord.Y - endBlockCorrd.Y) <= 10) {
+		if (abs(nextStepCoord.X - endBlockCorrd.X) <= 15 &&
+		abs(nextStepCoord.Y - endBlockCorrd.Y) <= 15) {
+			UE_LOG(LogTemp, Log, TEXT("found! break"))
 			break;
 		}
 
@@ -249,25 +251,38 @@ bool AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIg
 			return false;
 		}
 	}
-	backTrace();
+	if (!backTrace())
+	{
+		return false;
+	}
 	return true;
 	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
 }
 
-void AAStarPathfinding::backTrace() {
+bool AAStarPathfinding::backTrace() {
 	FVector currentCoord = endBlockCorrd;
 	int count = 0;
 	while (true) {
-		if (abs(currentCoord.X - startBlockCorrd.X) <= 10 &&
-		abs(currentCoord.Y - startBlockCorrd.Y) <= 10) {
+		count ++;
+		if (abs(currentCoord.X - startBlockCorrd.X) <= 15 &&
+		abs(currentCoord.Y - startBlockCorrd.Y) <= 15) {
+			UE_LOG(LogTemp, Log, TEXT("back search found"))
 			break;
+		}
+		if (count > ((xLen / width) * (yLen / width)))
+		{
+			return false;
 		}
 		FVector coordDirection = directions[currentCoord.Y / width][currentCoord.X / width];
 		solvedResultCoords.Add(coordDirection);
-		
-		currentCoord = FVector(currentCoord.X - coordDirection.X, currentCoord.Y - coordDirection.Y, zCoord - coordDirection.Z);
+
+		currentCoord.X -= coordDirection.X;
+		currentCoord.Y -= coordDirection.Y;
+		currentCoord.Z -= coordDirection.Z;
 	}
+	UE_LOG(LogTemp, Log, TEXT("backTrace Done!"))
 	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("backTrace Done!"));
+	return true;
 }
 
 FVector AAStarPathfinding::getNextStepDirection() {
