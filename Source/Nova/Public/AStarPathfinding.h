@@ -54,12 +54,12 @@ public:
 	void setStartEndCoord(int MapXLen, int MapYLen, int BoxWidth, int boxZCoord, FVector BoxStartCorrd, FVector BoxEndCoord);
 	
 	UFUNCTION(BlueprintCallable)
-	void solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors);
+	bool solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors);
 
 	UFUNCTION(BlueprintCallable)
 	FVector getNextStepDirection();
 
-	void backTrace();
+	bool backTrace();
 	
 	
 };
