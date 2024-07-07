@@ -207,7 +207,7 @@ void AAStarPathfinding::updateQueueCoords(int gDistance, TArray<AActor*> ignoreA
 }
 
 
-bool AAStarPathfinding::solve(int limit, TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors) {
+bool AAStarPathfinding::solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors) {
 	FVector nextStepCoord = startBlockCorrd;
 	
 	int currentGDistance = width;
@@ -244,7 +244,7 @@ bool AAStarPathfinding::solve(int limit, TArray<AActor*> ignoreActors, TArray<AA
 
 		currentGDistance += width;
 		count += 1;
-		if (count > limit)
+		if (count > ((xLen / width) * (yLen / width)))
 		{
 			return false;
 		}
@@ -254,8 +254,9 @@ bool AAStarPathfinding::solve(int limit, TArray<AActor*> ignoreActors, TArray<AA
 	// GEngine->AddOnScreenDebugMessage(5, 60.f, FColor::Black, FString("solve Done!"));
 }
 
-void AAStarPathfinding::backTrace() {
+bool AAStarPathfinding::backTrace() {
 	FVector currentCoord = endBlockCorrd;
+	int count = 0;
 	while (true) {
 		if (abs(currentCoord.X - startBlockCorrd.X) <= 10 &&
 		abs(currentCoord.Y - startBlockCorrd.Y) <= 10) {

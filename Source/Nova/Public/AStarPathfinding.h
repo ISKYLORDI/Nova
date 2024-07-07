@@ -54,7 +54,7 @@ public:
 	void setStartEndCoord(int MapXLen, int MapYLen, int BoxWidth, int boxZCoord, FVector BoxStartCorrd, FVector BoxEndCoord);
 	
 	UFUNCTION(BlueprintCallable)
-	bool solve(int limit, TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors);
+	bool solve(TArray<AActor*> ignoreActors, TArray<AActor*> noIgnoreActors);
 
 	UFUNCTION(BlueprintCallable)
 	FVector getNextStepDirection();
