@@ -5,7 +5,7 @@ def read_map_csv(file_path: str) -> list[list[int]]:
     data: list[list[int]] = []
     with open(file_path, "r") as f:
         reader = csv.DictReader(f)
-        headers = next(reader)
+        # headers = next(reader)
         y_value = 0
         for row in reader:
             data.append([])
