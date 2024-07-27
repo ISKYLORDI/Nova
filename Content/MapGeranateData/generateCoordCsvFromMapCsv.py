@@ -62,12 +62,6 @@ def save_csv(file_path: str, data: list[list[dict[int, int]]]) -> None:
                 count = write_data(data, writer, count, y_index, x_index)
 
 
-# data = [
-#     [0, 1, 0],
-#     [1, 0, 1],
-#     [0, 1, 0],
-# ]
-
 data = read_map_csv("edit_me/Map2.csv")
 
 save_csv("out/MapCoordData.csv", data)
