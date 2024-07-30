@@ -133,5 +133,5 @@ def save_img(file_path: str, data: list[list[dict[int, int]]]) -> None:
     image.save(file_path)
 
 
-data = read_map_csv("edit_me/Map2.csv")
+data = read_map_csv("edit_me/Map3.csv")
 save_img("out/test_image.png", data)
