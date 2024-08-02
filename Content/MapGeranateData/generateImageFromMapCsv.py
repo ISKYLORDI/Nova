@@ -1,5 +1,5 @@
 import csv
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from readMapCsv import read_map_csv
 
@@ -83,6 +83,8 @@ def get_max_min(data: list[list[dict[int, int]]]) -> tuple[int]:
 def save_img(file_path: str, data: list[list[dict[int, int]]]) -> None:
     grid_size = 60
     line_width = 2
+    fontsize = 25
+    font = ImageFont.truetype("arial.ttf", fontsize)
     x_len = len(data[0])
     y_len = len(data)
     size = (
@@ -98,10 +100,9 @@ def save_img(file_path: str, data: list[list[dict[int, int]]]) -> None:
         for y_index in range(y_len):
             color = void_color
             data_dict = data[y_index][x_index]
-
+            top_z_index = -999
             if data_dict != {}:
                 top_z_index = max(data_dict.keys())
-
                 if data_dict[top_z_index] == 0:
                     color = color_lerp(ground_colors, z_max, z_min, top_z_index)
                 elif data_dict[top_z_index] == 1:
@@ -120,18 +121,18 @@ def save_img(file_path: str, data: list[list[dict[int, int]]]) -> None:
                 ),
                 fill=color,
             )
-            # if value != None:
-            #     draw_img.text(
-            #         (
-            #             x_index * (grid_size + line_width) + grid_size // 2 - 5,
-            #             y_index * (grid_size + line_width) + grid_size // 2 - 5,
-            #         ),
-            #         str(value),
-            #         fill=(0, 0, 0),
-            #     )
+            draw_img.text(
+                (
+                    x_index * (grid_size + line_width) + grid_size // 2 - 5,
+                    y_index * (grid_size + line_width) + grid_size // 2 - 5,
+                ),
+                str(top_z_index),
+                fill=(0, 0, 0),
+                font=font,
+            )
 
     image.save(file_path)
 
 
-data = read_map_csv("edit_me/Map3.csv")
+data = read_map_csv("edit_me/Map4.csv")
 save_img("out/test_image.png", data)
